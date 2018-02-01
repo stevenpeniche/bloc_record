@@ -47,6 +47,40 @@ module Selection
     init_object_from_row(row)
   end
 
+  def find_each(start = 1, batch_size = all.length)
+    if validate_num(start) === false || validate_num(batch_size) === false
+      puts 'Please pass in valid start and batch_size arguements'
+      return
+    elsif start + batch_size > all.length
+      puts 'Batch would exceed record count: Please change your start or batch_size'
+      return
+    end
+
+    i = start
+    while i <= batch_size
+      row = connection.get_first_row <<-SQL
+        SELECT #{columns.join ","} FROM #{table}
+        WHERE id = #{i};
+      SQL
+      i += 1
+      yield row
+    end
+  end
+
+  def find_in_batches(start = 1, batch_size = all.length)
+    if validate_num(start) === false || validate_num(batch_size) === false
+      puts 'Please pass in valid start and batch_size arguements'
+      return
+    end
+
+    rows = connection.get_first_row <<-SQL
+      SELECT #{columns.join ","} FROM #{table}
+      WHERE id >= #{start} LIMIT #{batch_size};
+    SQL
+
+    yield rows_to_array(rows)
+  end
+
   def take(num=1)
     if validate_num(num)
       puts 'Please enter a valid number of entries to take'
