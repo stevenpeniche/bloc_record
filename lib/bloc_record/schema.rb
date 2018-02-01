@@ -26,7 +26,7 @@ module Schema
 
   def count
     connection.execute(<<-SQL)[0][0]
-      SELECT COUNT(*) FROM
+      SELECT COUNT(*) FROM #{table}
     SQL
   end
 end
