@@ -5,6 +5,11 @@ module Selection
     if ids.length == 1
       find_one(ids.first)
     else
+      if validate_num(ids) === false
+        puts 'Please enter valid id\'s'
+        return
+      end
+
       rows = connection.execute <<-SQL
         SELECT #{columns.join ","} FROM #{table}
         WHERE id IN (#{ids.join(",")});
@@ -15,6 +20,11 @@ module Selection
   end
 
   def find_one(id)
+    if validate_num(id) === false
+      puts 'Please enter a valid id'
+      return
+    end
+
     row = connection.get_first_row <<-SQL
       SELECT #{columns.join ","} FROM #{table}
       WHERE id = #{id};
@@ -24,6 +34,11 @@ module Selection
   end
 
   def find_by(attribute, value)
+    if validate_str(attribute)
+      puts 'Please enter a valid attribute'
+      return
+    end
+    
     row = connection.get_first_row <<-SQL
       SELECT #{columns.join ","} FROM #{table}
       WHERE #{attribute} = #{BlocRecord::Utility.sqlstrings(value)};
@@ -33,6 +48,11 @@ module Selection
   end
 
   def take(num=1)
+    if validate_num(num)
+      puts 'Please enter a valid number of entries to take'
+      return
+    end
+
     if num > 1
       rows = connection.execute <<-SQL
         SELECT #{columns.join ","} FROM #{table}
@@ -92,5 +112,28 @@ module Selection
 
   def rows_to_array(rows)
     rows.map { |row| new(Hash[columns.zip(row)]) }
+  end
+
+  def validate_num(value)
+    if value.is_a? Numeric
+      return true
+    elsif value.is_a? Array
+      for item in value
+        if !(item.is_a? Numeric)
+          return false
+        end
+      end
+      return true
+    else
+      return false
+    end
+  end
+
+  def validate_str(value)
+    if value.is_a? String
+      return true
+    else
+      return false
+    end
   end
 end
