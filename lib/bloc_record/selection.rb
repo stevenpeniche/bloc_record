@@ -38,7 +38,7 @@ module Selection
       puts 'Please enter a valid attribute'
       return
     end
-    
+
     row = connection.get_first_row <<-SQL
       SELECT #{columns.join ","} FROM #{table}
       WHERE #{attribute} = #{BlocRecord::Utility.sqlstrings(value)};
@@ -130,10 +130,17 @@ module Selection
   end
 
   def validate_str(value)
-    if value.is_a? String
+    if value.is_a? String || value.is_a? Symbol
       return true
     else
       return false
     end
+  end
+
+  def method_missing(method, arg)
+    attribute = method[8..-1].split('_').join(' ')
+    value = arg
+
+    find_by(attribute, value)
   end
 end
