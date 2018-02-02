@@ -47,7 +47,7 @@ module Selection
     init_object_from_row(row)
   end
 
-  def find_each(start = 1, batch_size = all.length)
+  def find_each(start = first.id, batch_size = all.length)
     if validate_num(start) === false || validate_num(batch_size) === false
       puts 'Please pass in valid start and batch_size arguements'
       return
@@ -67,7 +67,7 @@ module Selection
     end
   end
 
-  def find_in_batches(start = 1, batch_size = all.length)
+  def find_in_batches(start = first.id, batch_size = all.length)
     if validate_num(start) === false || validate_num(batch_size) === false
       puts 'Please pass in valid start and batch_size arguements'
       return
@@ -75,7 +75,7 @@ module Selection
 
     rows = connection.get_first_row <<-SQL
       SELECT #{columns.join ","} FROM #{table}
-      WHERE id >= #{start} LIMIT #{batch_size};
+      ORDER BY id LIMIT #{batch_size} OFFSET #{start};
     SQL
 
     yield rows_to_array(rows)
@@ -172,7 +172,8 @@ module Selection
   end
 
   def method_missing(method, arg)
-    attribute = method[8..-1].split('_').join(' ')
+    # Convert method to string then use RegEx to parse out the desired attribute
+    attribute = method.to_s.scan(/by_([^*]*)/).first.first.split('_').join(' ')
     value = arg
 
     find_by(attribute, value)
