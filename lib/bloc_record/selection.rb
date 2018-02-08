@@ -137,6 +137,8 @@ module Selection
   end
 
   def where(*args)
+    expression = nil
+
     if args.count > 1
       expression = args.shift
       params = args
@@ -160,10 +162,24 @@ module Selection
   end
 
   def order(*args)
+    order = nil
+
+    args.map! do |arg|
+      case arg
+      when String
+        arg
+      when Symbol
+        arg.to_s
+      when Hash
+        hash = BlocRecord::Utility.convert_keys(arg)
+        hash.map {|key, value| "#{key} #{BlocRecord::Utility.sql_strings(value)}"}
+      end
+    end
+
     if args.count > 1
-      order = args.join(",")
+      order = args.join(", ")
     else
-      order = args.first.to_s
+      order = args.first
     end
 
     rows = connection.execute <<-SQL

@@ -14,6 +14,8 @@ module BlocRecord
       case value
       when String
         "'#{value}'"
+      when Symbol
+        value.to_s
       when Numeric
         value.to_s
       else
