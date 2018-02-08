@@ -190,24 +190,29 @@ module Selection
   end
 
   def join(*args)
-    if args.count > 1
-      joins = args.map { |arg| "INNER JOIN #{arg} ON #{arg}.#{table}_id = #{table}.id"}.join(" ")
-      rows = connection.execute <<-SQL
-        SELECT * FROM #{table} #{joins}
-      SQL
-    else
-      case args.first
+    joins = args.map do |arg|
+      case arg
       when String
-        rows = connection.execute <<-SQL
-          SELECT * FROM #{table} #{BlocRecord::Utility.sql_strings(args.first)};
-        SQL
+        arg
       when Symbol
-        rows = connection.execute <<-SQL
-          SELECT * FROM #{table}
-          INNER JOIN #{args.first} ON #{args.first}.#{table}_id = #{table}.id
-        SQL
+        "INNER JOIN #{arg} ON #{arg}.#{table}_id = #{table}.id"
+      when Hash
+        hash = BlocRecord::Utility.convert_keys(arg)
+        hash.map { |key, value |
+          "INNER JOIN #{key} ON #{key}.#{table}_id = #{table}.id INNER JOIN #{value} ON #{value}.#{table}_id = #{table}.id"
+        }.first
       end
     end
+
+    if joins.count > 1
+      joins.join(" ")
+    else
+      joins = joins.first
+    end
+
+    rows = connection.execute <<-SQL
+      SELECT * FROM #{table} #{joins}
+    SQL
 
     rows_to_array(rows)
   end
