@@ -172,7 +172,7 @@ module Selection
         arg.to_s
       when Hash
         hash = BlocRecord::Utility.convert_keys(arg)
-        hash.map {|key, value| "#{key} #{BlocRecord::Utility.sql_strings(value)}"}
+        hash.map {|key, value| "#{key} #{BlocRecord::Utility.sql_strings(value)}"}.first
       end
     end
 
