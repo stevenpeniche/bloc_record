@@ -45,11 +45,13 @@ module Persistence
       update(nil, updates)
     end
 
-    def destroy(*id)
-      if id.length > 1
-        where_clause = "WHERE id IN (#{id.join(",")});"
+    def destroy(ids)
+      if ids.class == Fixnum
+        where_clause = "WHERE id = #{ids};"
+      elsif ids.class == Array
+        where_clause = ids.empty? ? ";" : "WHERE id IN (#{ids.join(",")});"
       else
-        where_clause = "WHERE id = #{id.first};"
+        where_clause = ";"
       end
 
       connection.execute <<-SQL
@@ -95,14 +97,37 @@ module Persistence
       new(data)
     end
 
-    def destroy_all(conditions_hash=nil)
-      if conditions_hash && !conditions_hash.empty?
-        conditions_hash = BlocRecord::Utility.convert_keys(conditions_hash)
-        conditions = conditions_hash.map {|key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}"}.join(" and ")
-      else
+    def destroy_all(conditions=nil)
+      case conditions.class
+      when String
         connection.execute <<-SQL
-          DELETE FROM #{table}
+          DELETE FROM #{table} WHERE #{condition};
         SQL
+      when Array
+        conditions = conditions.map.with_index do |condition, i|
+          if i.odd? && i != conditions.length - 1
+            condition + ', '
+          elsif i.even?
+            condition
+          else
+            condition
+          end
+        end
+
+        conditions = conditions.join.split('?').join
+
+        connection.execute <<-SQL
+          DELETE FROM #{table} WHERE #{conditions};
+        SQL
+      when Hash
+        if conditions && !conditions.empty?
+          conditions = BlocRecord::Utility.convert_keys(conditions)
+          conditions = conditions.map {|key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}"}.join(" and ")
+        else
+          connection.execute <<-SQL
+            DELETE FROM #{table}
+          SQL
+        end
       end
 
       true
