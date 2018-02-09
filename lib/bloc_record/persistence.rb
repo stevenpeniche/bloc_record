@@ -42,6 +42,32 @@ module Persistence
     end
 
     def update(ids, updates)
+      if ids.class == Array && updates.class = Array
+        where_clause = nil;
+        updates_array = []
+
+        ids.each_with_index do |id, index|
+          if id.class == Fixnum
+            where_clause = "WHERE id = #{id};"
+          else
+            puts "All hash keys(ids) must be a valid Integer"
+          end
+
+          id_updates = updates[index]
+
+          id_updates = BlocRecord::Utility.convert_keys(id_updates)
+          id_updates.delete "id"
+          updates_array = id_updates.map { |key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}" }
+
+          connection.execute <<-SQL
+            UPDATE #{table}
+            SET #{updates_array * ","} #{where_clause}
+          SQL
+        end
+
+        return true
+      end
+
       updates = BlocRecord::Utility.convert_keys(updates)
       updates.delete "id"
       updates_array = updates.map { |key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}" }
@@ -75,6 +101,15 @@ module Persistence
       data = Hash[attributes.zip attrs.values]
       data["id"] = connection.execute("SELECT last_insert_rowid();")[0][0]
       new(data)
+    end
+
+    private
+    def method_missing(method, arg)
+      # Convert method to string then use RegEx to parse out the desired attribute
+      attribute = method.to_s.scan(/update_([^*]*)/).first.first.split('_').join(' ')
+      value = arg
+
+      update_attribute(attribute, value)
     end
   end
 end
